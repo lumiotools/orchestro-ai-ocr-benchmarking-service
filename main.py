@@ -6,6 +6,7 @@ import uvicorn
 from modules.datalab.controller import router as datalab_router
 from modules.pymupdf4llm.controller import router as pymupdf4llm_router
 from modules.docling.controller import router as docling_router
+from modules.markitdown.controller import router as markitdown_router
 
 app = FastAPI()
 
@@ -20,6 +21,7 @@ app.add_middleware(
 app.include_router(datalab_router, prefix="/api/providers")
 app.include_router(pymupdf4llm_router, prefix="/api/providers")
 app.include_router(docling_router, prefix="/api/providers")
+app.include_router(markitdown_router, prefix="/api/providers")
 
 @app.get("/")
 async def root():
@@ -31,6 +33,7 @@ async def get_providers():
         {"name": "Datalab", "label": "datalab"},
         {"name": "PyMuPDF4LLM", "label": "pymupdf4llm"},
         {"name": "Docling", "label": "docling"},
+        {"name": "MarkItDown", "label": "markitdown"},
     ]
     return JSONResponse(content={"success": True, "data": {"providers": providers}}, status_code=200)
 
