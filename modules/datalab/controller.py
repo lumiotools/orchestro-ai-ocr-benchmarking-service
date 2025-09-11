@@ -1,6 +1,7 @@
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
 from time import time
+import asyncio
 
 from constants.option_types import OPTION_TYPES
 from common.contract_files import list_available_contracts, read_contract_file_bytes, read_contract_markdown
@@ -13,10 +14,12 @@ router = APIRouter(prefix="/datalab")
 
 @router.get("/options")
 async def get_options():
+    # list_available_contracts touches the filesystem -- run in threadpool to avoid blocking event loop
+    choices = await asyncio.to_thread(list_available_contracts)
     options = {
         "pdf_file": {
             "type": OPTION_TYPES.SELECT,
-            "choices": list_available_contracts(),
+            "choices": choices,
         },
         "paginated": {
             "type": OPTION_TYPES.BOOLEAN,
@@ -32,24 +35,28 @@ async def get_options():
 
 @router.post("/extract")
 async def extract_data(body: DatalabExtractionRequest):
-    if(body.pdf_file not in list_available_contracts()):
+    # Validate pdf_file against available contracts (run IO in threadpool)
+    available = await asyncio.to_thread(list_available_contracts)
+    if body.pdf_file not in available:
         return JSONResponse(content={"success": False, "error": "Invalid pdf_file option"}, status_code=400)
 
-    pdf_bytes = read_contract_file_bytes(body.pdf_file)
-    
+    pdf_bytes = await asyncio.to_thread(read_contract_file_bytes, body.pdf_file)
+
     started_at = int(time())
 
-    extracted_markdown = DatalabExtractor(
+    extractor = DatalabExtractor(
         paginated=body.paginated,
         force_ocr=body.force_ocr,
-    ).extract(pdf_bytes)
+    )
+    # extractor.extract is synchronous/CPU-bound => run in threadpool
+    extracted_markdown = await asyncio.to_thread(extractor.extract, pdf_bytes)
 
     completed_at = int(time())
 
     extraction_time = completed_at - started_at
-    
-    expected_markdown = read_contract_markdown(body.pdf_file)
-    score = ConfidenceCalculator().calculate_confidence_score(expected_markdown, extracted_markdown)
+
+    expected_markdown = await asyncio.to_thread(read_contract_markdown, body.pdf_file)
+    score = await asyncio.to_thread(ConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
     return JSONResponse(content={
         "success": True,
