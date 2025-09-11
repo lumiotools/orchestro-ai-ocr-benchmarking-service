@@ -6,3 +6,4 @@ docling
 pymupdf4llm
 pymupdf
 markitdown[pdf]
+APScheduler

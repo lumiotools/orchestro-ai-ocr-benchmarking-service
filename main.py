@@ -2,13 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+from contextlib import asynccontextmanager
 
+from cron.ping import scheduler as ping_scheduler
 from modules.datalab.controller import router as datalab_router
 from modules.pymupdf4llm.controller import router as pymupdf4llm_router
 from modules.docling.controller import router as docling_router
 from modules.markitdown.controller import router as markitdown_router
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the scheduler
+    ping_scheduler.start()
+    print("Cron Scheduler started.")
+    
+    yield  # This is where FastAPI serves requests
+    
+    # Shutdown: Any cleanup can go here
+    ping_scheduler.shutdown() # Uncomment if needed
+    
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +38,10 @@ app.include_router(markitdown_router, prefix="/api/providers")
 
 @app.get("/")
 async def root():
+	return JSONResponse(content={"success": True})
+
+@app.get("/api/ping")
+async def ping():
 	return JSONResponse(content={"success": True})
 
 @app.get("/api/providers")
