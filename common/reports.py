@@ -74,6 +74,10 @@ class Reports:
 
             meta = {
                 "id": payload.get("id") or p.stem,
+                "inputs": {
+                    "provider": payload.get("inputs", {}).get("provider"),
+                    "pdf_file": payload.get("inputs", {}).get("pdf_file"),
+                },
                 "created_at": payload.get("created_at"),
             }
             results.append(meta)
