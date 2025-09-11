@@ -60,7 +60,10 @@ async def extract_data(body: DatalabExtractionRequest):
     score = await asyncio.to_thread(ConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
     report_id = Reports().save_report({
-        "inputs": body.dict(),
+        "inputs": {
+            "provider": "Datalab",
+            **body.dict()
+        },
         "metadata": {
             "started_at": started_at,
             "completed_at": completed_at,

@@ -47,7 +47,10 @@ async def extract_data(body: PyMuPDF4LLMExtractionRequest):
     score = await asyncio.to_thread(ConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
     report_id = Reports().save_report({
-        "inputs": body.dict(),
+        "inputs": {
+            "provider": "PyMuPDF4LLM",
+            **body.dict()
+        },
         "metadata": {
             "started_at": started_at,
             "completed_at": completed_at,

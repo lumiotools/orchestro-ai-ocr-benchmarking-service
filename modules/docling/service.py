@@ -1,10 +1,10 @@
-from io import BytesIO
+import requests
+import os
 from typing import Optional
+from dotenv import load_dotenv
+load_dotenv()
 
-from docling.document_converter import DocumentConverter, PdfFormatOption  # type: ignore
-from docling.datamodel.base_models import DocumentStream, InputFormat  # type: ignore
-from docling.datamodel.pipeline_options import PdfPipelineOptions  # type: ignore
-
+DOCLING_URL = "http://34.138.80.251/v1/convert/file"
 
 class DoclingExtractor:
     """Convert PDF bytes to Markdown using Docling.
@@ -19,9 +19,14 @@ class DoclingExtractor:
 
     def __init__(
             self,
-            do_ocr: Optional[bool] = False,
-            do_table_structure: Optional[bool] = False,
-            do_table_structure_cell_matching: Optional[bool] = False,
+            do_ocr: Optional[bool] = True,
+            force_ocr: Optional[bool] = False,
+            ocr_engine: Optional[str] = "easyocr",
+            pdf_backend: Optional[str] = "dlparse_v4",
+            table_mode: Optional[str] = "accurate",
+            table_cell_matching: Optional[bool] = True,
+            do_table_structure: Optional[bool] = True,
+            md_page_break_placeholder: Optional[str] = "",
     ):
         """Initialize the extractor and prepare pipeline options.
 
@@ -31,11 +36,17 @@ class DoclingExtractor:
                 table_structure: Override for table structure extraction.
                 cell_matching: Override for cell matching inside table structure options.
         """
-        self.pipeline_options = self._build_pipeline_options(
-            do_ocr=do_ocr,
-            do_table_structure=do_table_structure,
-            do_table_structure_cell_matching=do_table_structure_cell_matching,
-        )
+        self.api_key = os.environ.get("DOCLING_API_KEY")
+        self.docling_url = DOCLING_URL
+  
+        self.do_ocr = do_ocr
+        self.force_ocr = force_ocr
+        self.ocr_engine = ocr_engine
+        self.pdf_backend = pdf_backend
+        self.table_mode = table_mode
+        self.table_cell_matching = table_cell_matching
+        self.do_table_structure = do_table_structure
+        self.md_page_break_placeholder = md_page_break_placeholder
 
     def extract(
             self,
@@ -46,34 +57,39 @@ class DoclingExtractor:
         Raises:
                 RuntimeError: on conversion errors.
         """
-        format_options = {InputFormat.PDF: PdfFormatOption(
-            pipeline_options=self.pipeline_options)}
-        converter = DocumentConverter(format_options=format_options)
-        stream = DocumentStream(name="contract.pdf", stream=BytesIO(pdf_bytes))
+        
+        if not self.api_key:
+            raise RuntimeError("DOCLING_API_KEY not configured in environment and not provided to DoclingExtractor()")
+        
+        files = {"files": ("Contract.pdf", pdf_bytes, "application/pdf")}
+        data = self._build_payload()
+        headers = {"Authorization": self.api_key}
+
+        response = requests.post(self.docling_url, headers=headers, data=data, files=files)
         try:
-            result = converter.convert(stream)
-        except Exception as exc:  # noqa: BLE001
-            raise RuntimeError(f"Docling conversion failed: {exc}") from exc
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise RuntimeError(f"API Error ({response.status_code}): {response.text}") from e
+        
+        response_json = response.json()
+        markdown_content = response_json.get("document").get("md_content")
+        
+        return markdown_content
+  
 
-        document = result.document
-        if document is None:
-            raise RuntimeError("Docling result missing 'document' attribute")
-        return document.export_to_markdown()
-
-    def _build_pipeline_options(
+    def _build_payload(
             self,
-            do_ocr: Optional[bool] = False,
-            do_table_structure: Optional[bool] = False,
-            do_table_structure_cell_matching: Optional[bool] = False,
-    ) -> PdfPipelineOptions:
+    ) -> dict:
         # Start with provided or default instance
-        opts = PdfPipelineOptions()
+        payload = {
+            "do_ocr": self.do_ocr,
+            "force_ocr": self.force_ocr,
+            "ocr_engine": self.ocr_engine,
+            "pdf_backend": self.pdf_backend,
+            "table_mode": self.table_mode,
+            "do_cell_matching": self.table_cell_matching,
+            "do_table_structure": self.do_table_structure,
+            "md_page_break_placeholder": self.md_page_break_placeholder,
+        }
 
-        if do_ocr is not None:
-            opts.do_ocr = do_ocr
-        if do_table_structure is not None:
-            opts.do_table_structure = do_table_structure
-        if do_table_structure_cell_matching is not None:
-            opts.table_structure_options.do_cell_matching = do_table_structure_cell_matching
-
-        return opts
+        return payload

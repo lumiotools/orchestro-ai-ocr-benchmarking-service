@@ -23,15 +23,38 @@ async def get_options():
         },
         "do_ocr": {
             "type": OPTION_TYPES.BOOLEAN,
+            "default": True
+        },
+        "force_ocr": {
+            "type": OPTION_TYPES.BOOLEAN,
             "default": False
+        },
+        "ocr_engine": {
+            "type": OPTION_TYPES.SELECT,
+            "default": "easyocr",
+            "choices": ["easyocr", "ocrmac", "rapidocr", "tesserocr", "tesseract"]
+        },
+        "pdf_backend": {
+            "type": OPTION_TYPES.SELECT,
+            "default": "dlparse_v4",
+            "choices": ["pypdfium2", "dlparse_v1", "dlparse_v2", "dlparse_v4"]
+        },
+        "table_mode": {
+            "type": OPTION_TYPES.SELECT,
+            "default": "accurate",
+            "choices": ["fast", "accurate"]
+        },
+        "table_cell_matching": {
+            "type": OPTION_TYPES.BOOLEAN,
+            "default": True
         },
         "do_table_structure": {
             "type": OPTION_TYPES.BOOLEAN,
             "default": True
         },
-        "do_table_structure_cell_matching": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": True
+        "md_page_break_placeholder": {
+            "type": OPTION_TYPES.STRING,
+            "default": ""
         }
     }
     return JSONResponse(content={"success": True, "options": options}, status_code=200)
@@ -52,8 +75,13 @@ async def extract_data(body: DoclingExtractionRequest):
     extracted_markdown = await asyncio.to_thread(
         DoclingExtractor(
             do_ocr=body.do_ocr,
+            force_ocr=body.force_ocr,
+            ocr_engine=body.ocr_engine,
+            pdf_backend=body.pdf_backend,
+            table_mode=body.table_mode,
+            table_cell_matching=body.table_cell_matching,
             do_table_structure=body.do_table_structure,
-            do_table_structure_cell_matching=body.do_table_structure_cell_matching,
+            md_page_break_placeholder=body.md_page_break_placeholder,
         ).extract,
         pdf_bytes,
     )
@@ -61,12 +89,15 @@ async def extract_data(body: DoclingExtractionRequest):
     completed_at = int(time())
 
     extraction_time = completed_at - started_at
-    
+
     expected_markdown = await asyncio.to_thread(read_contract_markdown, body.pdf_file)
     score = await asyncio.to_thread(ConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
     report_id = Reports().save_report({
-        "inputs": body.dict(),
+        "inputs": {
+            "provider": "Docling",
+            **body.dict()
+        },
         "metadata": {
             "started_at": started_at,
             "completed_at": completed_at,
