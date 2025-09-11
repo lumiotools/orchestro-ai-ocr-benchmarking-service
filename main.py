@@ -9,6 +9,7 @@ from modules.datalab.controller import router as datalab_router
 from modules.pymupdf4llm.controller import router as pymupdf4llm_router
 from modules.docling.controller import router as docling_router
 from modules.markitdown.controller import router as markitdown_router
+from common.reports import Reports
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,6 +54,28 @@ async def get_providers():
         {"name": "MarkItDown", "label": "markitdown"},
     ]
     return JSONResponse(content={"success": True, "data": {"providers": providers}}, status_code=200)
+
+
+@app.get("/api/reports")
+async def list_reports():
+    try:
+        reports = Reports()
+        items = reports.list_reports()
+        return JSONResponse(content={"success": True, "data": {"reports": items}}, status_code=200)
+    except Exception as exc:
+        return JSONResponse(content={"success": False, "error": str(exc)}, status_code=500)
+
+
+@app.get("/api/reports/{report_id}")
+async def get_report(report_id: str):
+    try:
+        reports = Reports()
+        payload = reports.get_report(report_id)
+        return JSONResponse(content={"success": True, "data": {"report": payload}}, status_code=200)
+    except FileNotFoundError:
+        return JSONResponse(content={"success": False, "error": "Report not found"}, status_code=404)
+    except Exception as exc:
+        return JSONResponse(content={"success": False, "error": str(exc)}, status_code=500)
 
 if __name__ == "__main__":
 	uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

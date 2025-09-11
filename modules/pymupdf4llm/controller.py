@@ -6,6 +6,7 @@ import asyncio
 from constants.option_types import OPTION_TYPES
 from common.contract_files import list_available_contracts, read_contract_file_bytes, read_contract_markdown
 from common.confidence import ConfidenceCalculator
+from common.reports import Reports
 from .schema import PyMuPDF4LLMExtractionRequest
 from .service import PyMuPDF4LLMExtractor
 
@@ -45,15 +46,18 @@ async def extract_data(body: PyMuPDF4LLMExtractionRequest):
     expected_markdown = await asyncio.to_thread(read_contract_markdown, body.pdf_file)
     score = await asyncio.to_thread(ConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
-    return JSONResponse(content={
-        "success": True,
+    report_id = Reports().save_report({
+        "inputs": body.dict(),
         "metadata": {
             "started_at": started_at,
             "completed_at": completed_at,
             "extraction_time": extraction_time,
             "score": score
         },
-        "data": {
-            "markdown": extracted_markdown
-        }
+        "markdown": extracted_markdown
+    })
+
+    return JSONResponse(content={
+        "success": True,
+        "report_id": report_id
     }, status_code=200)
