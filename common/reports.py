@@ -61,7 +61,7 @@ class Reports:
     def list_reports(self) -> List[Dict[str, Any]]:
         """List metadata for all saved reports.
 
-        Returns a list of dicts with at least 'id' and 'created_at'.
+        Returns a list of dicts with at least 'id' and 'created_at', sorted by created_at (newest first).
         """
         results: List[Dict[str, Any]] = []
         for p in sorted(self.reports_dir.glob("*.json")):
@@ -74,8 +74,22 @@ class Reports:
 
             meta = {
                 "id": payload.get("id") or p.stem,
-                "created_at": payload.get("created_at")
+                "created_at": payload.get("created_at"),
             }
             results.append(meta)
 
-        return results
+        # Inline parsing of created_at into a datetime for sorting (no separate function).
+        results_with_dt = []
+        for m in results:
+            dt = m.get("created_at")
+            if not dt:
+                parsed = datetime.min
+            else:
+                try:
+                    parsed = datetime.fromisoformat(dt.rstrip("Z"))
+                except Exception:
+                    parsed = datetime.min
+            results_with_dt.append((parsed, m))
+
+        results_with_dt.sort(key=lambda t: t[0], reverse=True)
+        return [m for _, m in results_with_dt]
