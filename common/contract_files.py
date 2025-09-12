@@ -3,7 +3,7 @@ from typing import List
 
 def list_available_contracts() -> List[str]:
     """
-    List all available contract PDF files in the contracts directory.
+    List all available contract PDF files in the contracts directory, sorted by filename.
     """
     contracts_dir = Path("contracts")
     if not contracts_dir.exists() or not contracts_dir.is_dir():
@@ -14,6 +14,8 @@ def list_available_contracts() -> List[str]:
         if f.is_file():
             # return POSIX-style relative path (e.g. "abc/def.pdf") for consistency across platforms
             pdf_files.append(str(f.relative_to(contracts_dir).as_posix()))
+    # Sort by the base filename (case-insensitive) for predictable ordering
+    pdf_files.sort(key=lambda p: Path(p).name.lower())
     return pdf_files
 
 def read_contract_file_bytes(contract_filename: str) -> bytes:

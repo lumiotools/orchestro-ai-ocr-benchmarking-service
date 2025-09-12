@@ -9,6 +9,7 @@ from modules.datalab.controller import router as datalab_router
 from modules.pymupdf4llm.controller import router as pymupdf4llm_router
 from modules.docling.controller import router as docling_router
 from modules.markitdown.controller import router as markitdown_router
+from modules.pdf_docx_md.controller import router as pdf_docx_md_router
 from common.reports import Reports
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.include_router(datalab_router, prefix="/api/providers")
 app.include_router(pymupdf4llm_router, prefix="/api/providers")
 app.include_router(docling_router, prefix="/api/providers")
 app.include_router(markitdown_router, prefix="/api/providers")
+app.include_router(pdf_docx_md_router, prefix="/api/providers")
 
 @app.get("/")
 async def root():
@@ -52,6 +54,7 @@ async def get_providers():
         {"name": "PyMuPDF4LLM", "label": "pymupdf4llm"},
         {"name": "Docling", "label": "docling"},
         {"name": "MarkItDown", "label": "markitdown"},
+        {"name": "PdfDocsMd", "label": "pdf_docx_md"},
     ]
     return JSONResponse(content={"success": True, "data": {"providers": providers}}, status_code=200)
 
