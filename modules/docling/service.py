@@ -4,7 +4,7 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-DOCLING_URL = "http://34.138.80.251/v1/convert/file"
+DOCLING_URL = "https://api-docling-dev.app.orchestro.ai/v1/convert/file"
 
 class DoclingExtractor:
     """Convert PDF bytes to Markdown using Docling.
