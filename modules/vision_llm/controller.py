@@ -7,10 +7,10 @@ from constants.option_types import OPTION_TYPES
 from common.contract_files import list_available_contracts, read_contract_file_bytes, read_contract_markdown
 from common.confidence_llm import LLMConfidenceCalculator
 from common.reports import Reports
-from .schema import DoclingExtractionRequest
-from .service import DoclingExtractor
+from .schema import VisionLLMExtractionRequest
+from .service import VisionLLMExtractor
 
-router = APIRouter(prefix="/docling")
+router = APIRouter(prefix="/vision_llm")
 
 @router.get("/options")
 async def get_options():
@@ -21,48 +21,27 @@ async def get_options():
             "type": OPTION_TYPES.SELECT,
             "choices": choices,
         },
-        "do_ocr": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": True
-        },
-        "force_ocr": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": False
-        },
-        "ocr_engine": {
-            "type": OPTION_TYPES.SELECT,
-            "default": "easyocr",
-            "choices": ["easyocr", "ocrmac", "rapidocr", "tesserocr", "tesseract"]
-        },
-        "pdf_backend": {
-            "type": OPTION_TYPES.SELECT,
-            "default": "dlparse_v4",
-            "choices": ["pypdfium2", "dlparse_v1", "dlparse_v2", "dlparse_v4"]
-        },
-        "table_mode": {
-            "type": OPTION_TYPES.SELECT,
-            "default": "accurate",
-            "choices": ["fast", "accurate"]
-        },
-        "table_cell_matching": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": True
-        },
-        "do_table_structure": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": True
-        },
-        "md_page_break_placeholder": {
+        "vllm_base_url": {
             "type": OPTION_TYPES.STRING,
-            "default": ""
+            "default": "https://openrouter.ai/api/v1"
+        },
+        "vllm_api_key": {
+            "type": OPTION_TYPES.STRING,
+        },
+        "vllm_model_id": {
+            "type": OPTION_TYPES.STRING,
+        },
+        "vllm_prompt": {
+            "type": OPTION_TYPES.LONG_STRING,
+            "default": "Extract the text from the above document as if you were reading it naturally. Return the tables in html format. If there is an image in the document and image caption is not present, add a small description of the image inside the <img></img> tag; otherwise, add the image caption inside <img></img>. Watermarks should be wrapped in brackets. Ex: <watermark>OFFICIAL COPY</watermark>. Page numbers should be wrapped in brackets. Do not include any additional explaination or information. Extract only what's visible in the document.",
         }
     }
     return JSONResponse(content={"success": True, "options": options}, status_code=200)
 
 
 @router.post("/extract")
-async def extract_data(body: DoclingExtractionRequest):
-    # validate and read file in threadpool to avoid blocking the event loop
+async def extract_data(body: VisionLLMExtractionRequest):
+    # validate and read file in threadpool
     available = await asyncio.to_thread(list_available_contracts)
     if body.pdf_file not in available:
         return JSONResponse(content={"success": False, "error": "Invalid pdf_file option"}, status_code=400)
@@ -71,20 +50,13 @@ async def extract_data(body: DoclingExtractionRequest):
 
     started_at = int(time())
 
-    # extractor.extract is synchronous and may be CPU/IO heavy: run in threadpool
-    extracted_markdown = await asyncio.to_thread(
-        DoclingExtractor(
-            do_ocr=body.do_ocr,
-            force_ocr=body.force_ocr,
-            ocr_engine=body.ocr_engine,
-            pdf_backend=body.pdf_backend,
-            table_mode=body.table_mode,
-            table_cell_matching=body.table_cell_matching,
-            do_table_structure=body.do_table_structure,
-            md_page_break_placeholder=body.md_page_break_placeholder,
-        ).extract,
-        pdf_bytes,
-    )
+    # extractor may be blocking; run in threadpool
+    extracted_markdown = await asyncio.to_thread(VisionLLMExtractor(
+        vllm_base_url=body.vllm_base_url,
+        vllm_api_key=body.vllm_api_key,
+        vllm_model_id=body.vllm_model_id,
+        vllm_prompt=body.vllm_prompt
+    ).extract, pdf_bytes)
 
     completed_at = int(time())
 
@@ -93,9 +65,11 @@ async def extract_data(body: DoclingExtractionRequest):
     expected_markdown = await asyncio.to_thread(read_contract_markdown, body.pdf_file)
     score = await asyncio.to_thread(LLMConfidenceCalculator().calculate_confidence_score, expected_markdown, extracted_markdown)
 
+    body.vllm_api_key = "****"  # mask api key in report
+    
     report_id = Reports().save_report({
         "inputs": {
-            "provider": "Docling",
+            "provider": "VisionLLM",
             **body.dict()
         },
         "metadata": {

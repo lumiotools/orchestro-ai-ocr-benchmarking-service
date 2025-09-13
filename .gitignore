@@ -3,3 +3,6 @@ __pycache__
 .env
 Uniqus
 reports
+nanonets_raw
+markdown.py
+test*

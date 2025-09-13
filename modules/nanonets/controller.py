@@ -7,36 +7,31 @@ from constants.option_types import OPTION_TYPES
 from common.contract_files import list_available_contracts, read_contract_file_bytes, read_contract_markdown
 from common.confidence_llm import LLMConfidenceCalculator
 from common.reports import Reports
-from .schema import DatalabExtractionRequest
-from .service import DatalabExtractor
+from .schema import NanonetsExtractionRequest
+from .service import NanonetsExtractor
 
-router = APIRouter(prefix="/datalab")
-
+router = APIRouter(prefix="/nanonets")
 
 @router.get("/options")
 async def get_options():
-    # list_available_contracts touches the filesystem -- run in threadpool to avoid blocking event loop
+    # list_available_contracts touches filesystem -- run in threadpool
     choices = await asyncio.to_thread(list_available_contracts)
     options = {
         "pdf_file": {
             "type": OPTION_TYPES.SELECT,
             "choices": choices,
         },
-        "paginated": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": False
-        },
-        "force_ocr": {
-            "type": OPTION_TYPES.BOOLEAN,
-            "default": False
+        "prompt": {
+            "type": OPTION_TYPES.LONG_STRING,
+            "default": "Extract the text from the above document as if you were reading it naturally. Return the tables in html format. Return the equations in LaTeX representation. If there is an image in the document and image caption is not present, add a small description of the image inside the <img></img> tag; otherwise, add the image caption inside <img></img>. Watermarks should be wrapped in brackets. Ex: <watermark>OFFICIAL COPY</watermark>. Page numbers should be wrapped in brackets. Ex: <page_number>14</page_number> or <page_number>9/22</page_number>. Prefer using ☐ and ☑ for check boxes.",
         }
     }
     return JSONResponse(content={"success": True, "options": options}, status_code=200)
 
 
 @router.post("/extract")
-async def extract_data(body: DatalabExtractionRequest):
-    # Validate pdf_file against available contracts (run IO in threadpool)
+async def extract_data(body: NanonetsExtractionRequest):
+    # validate and read file in threadpool
     available = await asyncio.to_thread(list_available_contracts)
     if body.pdf_file not in available:
         return JSONResponse(content={"success": False, "error": "Invalid pdf_file option"}, status_code=400)
@@ -45,12 +40,8 @@ async def extract_data(body: DatalabExtractionRequest):
 
     started_at = int(time())
 
-    extractor = DatalabExtractor(
-        paginated=body.paginated,
-        force_ocr=body.force_ocr,
-    )
-    # extractor.extract is synchronous/CPU-bound => run in threadpool
-    extracted_markdown = await asyncio.to_thread(extractor.extract, pdf_bytes)
+    # extractor may be blocking; run in threadpool
+    extracted_markdown = await asyncio.to_thread(NanonetsExtractor(prompt=body.prompt).extract, pdf_bytes)
 
     completed_at = int(time())
 
@@ -61,7 +52,7 @@ async def extract_data(body: DatalabExtractionRequest):
 
     report_id = Reports().save_report({
         "inputs": {
-            "provider": "Datalab",
+            "provider": "Nanonets",
             **body.dict()
         },
         "metadata": {

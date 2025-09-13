@@ -5,11 +5,14 @@ import uvicorn
 from contextlib import asynccontextmanager
 
 from cron.ping import scheduler as ping_scheduler
-from modules.datalab.controller import router as datalab_router
-from modules.pymupdf4llm.controller import router as pymupdf4llm_router
+from modules.nanonets.controller import router as nanonets_router
 from modules.docling.controller import router as docling_router
+from modules.datalab.controller import router as datalab_router
+from modules.vision_llm.controller import router as vision_llm_router
+from modules.pymupdf4llm.controller import router as pymupdf4llm_router
 from modules.markitdown.controller import router as markitdown_router
 from modules.pdf_docx_md.controller import router as pdf_docx_md_router
+
 from common.reports import Reports
 
 @asynccontextmanager
@@ -33,9 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(datalab_router, prefix="/api/providers")
-app.include_router(pymupdf4llm_router, prefix="/api/providers")
+app.include_router(nanonets_router, prefix="/api/providers")
 app.include_router(docling_router, prefix="/api/providers")
+app.include_router(datalab_router, prefix="/api/providers")
+app.include_router(vision_llm_router, prefix="/api/providers")
+app.include_router(pymupdf4llm_router, prefix="/api/providers")
 app.include_router(markitdown_router, prefix="/api/providers")
 app.include_router(pdf_docx_md_router, prefix="/api/providers")
 
@@ -50,9 +55,11 @@ async def ping():
 @app.get("/api/providers")
 async def get_providers():
     providers = [
-        {"name": "Datalab", "label": "datalab"},
-        {"name": "PyMuPDF4LLM", "label": "pymupdf4llm"},
+        {"name": "Nanonets", "label": "nanonets"},
         {"name": "Docling", "label": "docling"},
+        {"name": "Datalab", "label": "datalab"},
+        {"name": "VisionLLM", "label": "vision_llm"},
+        {"name": "PyMuPDF4LLM", "label": "pymupdf4llm"},
         {"name": "MarkItDown", "label": "markitdown"},
         {"name": "PdfDocsMd", "label": "pdf_docx_md"},
     ]
