@@ -93,6 +93,7 @@ async def extract_data(
     else:
         expected_markdown = ""
         score = {}
+        body.pdf_file = upload_pdf.filename
 
     body.vllm_api_key = "****"  # mask api key in report
     

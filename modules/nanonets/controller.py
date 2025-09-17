@@ -78,6 +78,7 @@ async def extract_data(
     else:
         expected_markdown = ""
         score = {}
+        body.pdf_file = upload_pdf.filename
 
     report_id = Reports().save_report({
         "inputs": {
