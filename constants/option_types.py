@@ -6,3 +6,8 @@ class OPTION_TYPES:
     BOOLEAN = "boolean"
     INT = "int"
     FLOAT = "float"
+    TAB = "tab"
+    
+class PDF_TYPES:
+    UPLOAD = "Upload PDF"
+    EXISTING = "Use Existing PDF"
