@@ -395,13 +395,11 @@ DocuSign Envelope ID: 59BC11D5-71F7-4BFA-9979-316347BCF8F3
 | 362 | 363 | 364 | 365 | 366 | 367 | 368 |  |  |  |  |  |  |  |  |  
 | -50.00% | -50.00% | -50.00% | -50.00% | -50.00% | -50.00% | -50.00% |  |  |  |  |  |  |  |  |  
  
-| Service | | | | | | | | | | | | | |  
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |  
-| Minimum | | | Zone | | Base Rate | | | | Adjustment | | | |  
-| Per | | |  | |  | | | |  | | | |  
-| UPS 3 Day Select® - Package - Prepaid FC TP UP RS RTP | Package | | ALL | | UPS 3 Day Select® Zone 302 1 lb | | | | -1.50 | | | |  
-| UPS® Ground - Commercial Package - Prepaid FC TP UP RS RTP | Package | | ALL | | UPS Ground Zone 002 1 lb | | | |  | | | |  
-| UPS® Ground - Residential Package - Prepaid FC TP RS RTP | Package | | ALL | | UPS Ground Zone 002 1 lb | | | |  | | | |  
+| Service | Minimum Per | Zone | Base Rate | Adjustment |
+| --- | --- | --- | --- | --- |  
+| UPS 3 Day Select® - Package - Prepaid FC TP UP RS RTP | Package | ALL | UPS 3 Day Select® Zone 302 1 lb | -1.50 |  
+| UPS® Ground - Commercial Package - Prepaid FC TP UP RS RTP | Package | ALL | UPS Ground Zone 002 1 lb | |  
+| UPS® Ground - Residential Package - Prepaid FC TP RS RTP | Package | ALL | UPS Ground Zone 002 1 lb | |  
   
 **Committed Services:**  
 *All Small Package Freight*: Domestic and Export transportation charges from the following: Letter, Document, Package, Pallet, or Hundredweight prepaid. Freight Collect, Third Party, Consignee Billing, World Ease, Consolidated Clearance, Return Services or ARS will be used to determine the customer's incentive levels: Next Day Air Early; Next Day Air; Next Day Air Saver, 2nd Day Air A.M.; 2nd Day Air; 3 Day Select; US Ground; US Export Worldwide Express / Express Plus (Excluding 10 kg and 25 kg box); US Export Worldwide Saver (Excluding 10 kg and 25 kg box); Export Worldwide Express Freight, US Export Worldwide Expedited; UPS Standard.  
